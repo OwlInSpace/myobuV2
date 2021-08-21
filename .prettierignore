@@ -1,0 +1,15 @@
+# folders
+artifacts/
+build/
+cache/
+coverage/
+dist/
+lib/
+node_modules/
+typechain/
+ERC20/
+
+# files
+coverage.json
+
+pnpm-lock.yaml
