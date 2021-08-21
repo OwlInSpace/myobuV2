@@ -62,8 +62,8 @@ Lints the solidity and typescript code
 
 Formats the solidity and typescript code
 
-### `pnpm verify:testnet <address>`
+### `pnpm verify:testnet <address> <constructor arguments>`
 
-### `pnpm verify:mainnet <address>`
+### `pnpm verify:mainnet <address> <constructor arguments>`
 
 Verfies the contracts on etherscan
