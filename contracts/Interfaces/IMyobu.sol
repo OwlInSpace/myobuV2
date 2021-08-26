@@ -11,7 +11,7 @@ interface IMyobu is IERC20 {
 
     function DAO() external view returns (address); // solhint-disable-line
     
-    function MyobuSwap() external view returns (address);
+    function myobuswap() external view returns (address);
 
     event FeesTaken(uint256 teamFee, uint256 taxFee);
 
