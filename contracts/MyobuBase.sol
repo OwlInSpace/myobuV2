@@ -168,7 +168,6 @@ abstract contract MyobuBase is IMyobu, Ownable {
 
     function restoreAllFee(uint256 rfi) private {
         fees.taxFee = rfi;
-        _teamFee = fees.buyFee;
     }
 
     function _transfer(
@@ -177,34 +176,29 @@ abstract contract MyobuBase is IMyobu, Ownable {
         uint256 amount
     ) internal {
         require(amount > 0, "Transfer amount must be greater than zero");
-
-        if (from != owner() && to != owner()) {
-            if (taxedPair(from) && !taxedPair(to)) {
-                require(tradingOpen);
-                _teamFee = fees.buyFee;
-            }
-            uint256 contractTokenBalance = balanceOf(address(this));
-            if (!inSwap && taxedPair(to) && swapEnabled && from != address(this)) {
-                require(tradingOpen);
-                require(amount <= (balanceOf(to) * fees.impact) / 100);
-                swapTokensForEth(contractTokenBalance);
-                sendETHToFee(address(this).balance);
-                _teamFee = fees.sellFee;
-            }
-        }
+        
         bool takeFee = false;
-
-        if (
-            (taxedPair(from) || taxedPair(to)) &&
-            from != address(this) &&
-            !inSwap &&
-            swapEnabled
-        ) {
-            takeFee = true;
+        
+        if (from != owner() && to != owner()) {
+            if (swapEnabled && !inSwap){
+                if (taxedPair(from) && !taxedPair(to)) {
+                    require(tradingOpen);
+                    _teamFee = fees.buyFee;
+                    takeFee = true;
+                }
+                uint256 contractTokenBalance = balanceOf(address(this));
+                if (taxedPair(to) && from != address(this)) {
+                    require(tradingOpen);
+                    require(amount <= (balanceOf(to) * fees.impact) / 100);
+                    swapTokensForEth(contractTokenBalance);
+                    sendETHToFee(address(this).balance);
+                    _teamFee = fees.sellFee;
+                    takeFee = true;
+                }
+            }    
         }
 
         _tokenTransfer(from, to, amount, takeFee);
-        restoreAllFee;
     }
 
     function swapTokensForEth(uint256 tokenAmount) internal lockTheSwap {
