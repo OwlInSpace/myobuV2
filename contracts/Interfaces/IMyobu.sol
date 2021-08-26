@@ -22,6 +22,7 @@ interface IMyobu is IERC20 {
         uint256 taxFee;
         uint256 buyFee;
         uint256 sellFee;
+        uint256 transferFee;
     }
 
     function currentFees() external view returns (Fees memory);
