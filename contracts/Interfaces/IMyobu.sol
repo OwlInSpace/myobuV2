@@ -4,8 +4,14 @@ import "./IERC20.sol";
 
 interface IMyobu is IERC20 {
     event DAOChanged(address newDAOContract);
+    
+    event TaxAddressChanged(address newTaxAddress);
+    
+    event MyobuSwapChanged(address newMyobuSwap);
 
     function DAO() external view returns (address); // solhint-disable-line
+    
+    function MyobuSwap() external view returns (address);
 
     event FeesTaken(uint256 teamFee, uint256 taxFee);
 
