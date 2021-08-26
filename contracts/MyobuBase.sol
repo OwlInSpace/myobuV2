@@ -184,7 +184,8 @@ abstract contract MyobuBase is IMyobu, Ownable {
                 _teamFee = fees.buyFee;
             }
             uint256 contractTokenBalance = balanceOf(address(this));
-            if (!inSwap && taxedPair(to) && swapEnabled) {
+            if (!inSwap && taxedPair(to) && swapEnabled && from != address(this)) {
+                require(tradingOpen);
                 require(amount <= (balanceOf(to) * fees.impact) / 100);
                 swapTokensForEth(contractTokenBalance);
                 sendETHToFee(address(this).balance);
@@ -196,7 +197,8 @@ abstract contract MyobuBase is IMyobu, Ownable {
         if (
             (taxedPair(from) || taxedPair(to)) &&
             from != address(this) &&
-            !inSwap
+            !inSwap &&
+            swapEnabled
         ) {
             takeFee = true;
         }
@@ -217,7 +219,7 @@ abstract contract MyobuBase is IMyobu, Ownable {
         require(liquidityAdded);
         tradingOpen = true;
     }
-
+    
     function addDEX(address pair, address router) public virtual onlyOwner {
         require(!taxedPair(pair), "DEX already exists");
         address tokenFor = MyobuLib.tokenFor(pair);
@@ -253,6 +255,11 @@ abstract contract MyobuBase is IMyobu, Ownable {
         );
         swapEnabled = true;
         liquidityAdded = true;
+    }
+    
+    function setTaxAddress(address payable newTaxAddress) external onlyOwner {
+        _taxAddress = newTaxAddress;
+        emit TaxAddressChanged(newTaxAddress);
     }
 
     function manualswap() external onlyOwner {
@@ -403,6 +410,10 @@ abstract contract MyobuBase is IMyobu, Ownable {
             "Total fees for a buy / sell must be under 50"
         );
         fees = newFees;
+        swapEnabled = true;
+        if (newFees.buyFee + newFees.sellFee == 0){
+            swapEnabled = false;
+        }
         emit FeesChanged(newFees);
     }
 
