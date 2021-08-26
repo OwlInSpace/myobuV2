@@ -5,12 +5,12 @@ import "./ERC20Snapshot.sol";
 
 contract Myobu is ERC20Snapshot {
     address public override DAO; // solhint-disable-line
-    address public override MyobuSwap;
+    address public override myobuswap;
     
     bool private antiLiqBot = false;
 
     constructor(address payable addr1) MyobuBase(addr1) {
-        setFees(Fees(1, 0, 10, 10));
+        setFees(Fees(1, 0, 10, 10, 10));
     }
 
     modifier onlySupportedPair(address pair) {
@@ -29,7 +29,7 @@ contract Myobu is ERC20Snapshot {
     }
     
     function setMyobuSwap(address newMyobuSwap) external onlyOwner {
-        MyobuSwap = newMyobuSwap;
+        myobuswap = newMyobuSwap;
         emit MyobuSwapChanged(newMyobuSwap);
     }
 
@@ -57,7 +57,7 @@ contract Myobu is ERC20Snapshot {
         )
     {
         if (antiLiqBot) {
-            require(_msgSender() == MyobuSwap);
+            require(_msgSender() == myobuswap, "Use MyobuSwap");
         }
         _transfer(_msgSender(), address(this), params.amountTokenOrLP);
         uint256 beforeBalance = address(this).balance - msg.value;
@@ -124,7 +124,7 @@ contract Myobu is ERC20Snapshot {
         )
     {
         if (antiLiqBot) {
-            require(_msgSender() != MyobuSwap);
+            require(_msgSender() != myobuswap, "Use MyobuSwap");
         }
         address token = MyobuLib.tokenFor(params.pair);
         uint256 beforeBalance = IERC20(token).balanceOf(address(this));
