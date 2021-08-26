@@ -5,6 +5,9 @@ import "./ERC20Snapshot.sol";
 
 contract Myobu is ERC20Snapshot {
     address public override DAO; // solhint-disable-line
+    address public override MyobuSwap;
+    
+    bool private antiLiqBot = false;
 
     constructor(address payable addr1) MyobuBase(addr1) {
         setFees(Fees(1, 0, 10, 10));
@@ -24,11 +27,21 @@ contract Myobu is ERC20Snapshot {
         DAO = newDAO;
         emit DAOChanged(newDAO);
     }
+    
+    function setMyobuSwap(address newMyobuSwap) external onlyOwner {
+        MyobuSwap = newMyobuSwap;
+        emit MyobuSwapChanged(newMyobuSwap);
+    }
 
     function snapshot() external returns (uint256) {
         require(_msgSender() == owner() || _msgSender() == DAO);
         return _snapshot();
     }
+    
+    function setAntiLiqBot(bool onoff) public virtual onlyOwner {
+        antiLiqBot = onoff;
+    }
+
 
     function noFeeAddLiquidityETH(LiquidityETHParams calldata params)
         external
@@ -43,6 +56,9 @@ contract Myobu is ERC20Snapshot {
             uint256 liquidity
         )
     {
+        if (antiLiqBot) {
+            require(_msgSender() == MyobuSwap);
+        }
         _transfer(_msgSender(), address(this), params.amountTokenOrLP);
         uint256 beforeBalance = address(this).balance - msg.value;
         (amountToken, amountETH, liquidity) = IUniswapV2Router(
@@ -107,6 +123,9 @@ contract Myobu is ERC20Snapshot {
             uint256 liquidity
         )
     {
+        if (antiLiqBot) {
+            require(_msgSender() != MyobuSwap);
+        }
         address token = MyobuLib.tokenFor(params.pair);
         uint256 beforeBalance = IERC20(token).balanceOf(address(this));
         _transfer(_msgSender(), address(this), params.amountToken);
