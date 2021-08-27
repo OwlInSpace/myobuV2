@@ -24,8 +24,6 @@ abstract contract MyobuBase is IMyobu, Ownable {
 
     // pair => router
     mapping(address => address) internal _routerFor;
-    
-    mapping(address => bool) private taxedTransfer;
 
     mapping(address => mapping(address => uint256)) private _allowances;
 
@@ -170,6 +168,7 @@ abstract contract MyobuBase is IMyobu, Ownable {
 
     function restoreAllFee(uint256 rfi) private {
         fees.taxFee = rfi;
+        _teamFee = fees.buyFee;
     }
 
     function _transfer(
@@ -178,31 +177,32 @@ abstract contract MyobuBase is IMyobu, Ownable {
         uint256 amount
     ) internal {
         require(amount > 0, "Transfer amount must be greater than zero");
-        
-        bool takeFee = false;
-        
+
         if (from != owner() && to != owner()) {
-            if (swapEnabled && !inSwap){
-                if (taxedPair(from) && !taxedPair(to)) {
-                    require(tradingOpen);
-                    _teamFee = fees.buyFee;
-                    takeFee = true;
-                } else if (taxedTransfer[from] || taxedTransfer[to]){
-                    _teamFee = fees.transferFee;
-                    takeFee = true;
-                } else if (taxedPair(to)) {
-                    require(tradingOpen);
-                    require(amount <= (balanceOf(to) * fees.impact) / 100);
-                    uint256 contractTokenBalance = balanceOf(address(this));
-                    swapTokensForEth(contractTokenBalance);
-                    sendETHToFee(address(this).balance);
-                    _teamFee = fees.sellFee;
-                    takeFee = true;
-                }
-            }    
+            if (taxedPair(from) && !taxedPair(to)) {
+                require(tradingOpen);
+                _teamFee = fees.buyFee;
+            }
+            uint256 contractTokenBalance = balanceOf(address(this));
+            if (!inSwap && taxedPair(to) && swapEnabled) {
+                require(amount <= (balanceOf(to) * fees.impact) / 100);
+                swapTokensForEth(contractTokenBalance);
+                sendETHToFee(address(this).balance);
+                _teamFee = fees.sellFee;
+            }
+        }
+        bool takeFee = false;
+
+        if (
+            (taxedPair(from) || taxedPair(to)) &&
+            from != address(this) &&
+            !inSwap
+        ) {
+            takeFee = true;
         }
 
         _tokenTransfer(from, to, amount, takeFee);
+        restoreAllFee;
     }
 
     function swapTokensForEth(uint256 tokenAmount) internal lockTheSwap {
@@ -217,7 +217,7 @@ abstract contract MyobuBase is IMyobu, Ownable {
         require(liquidityAdded);
         tradingOpen = true;
     }
-    
+
     function addDEX(address pair, address router) public virtual onlyOwner {
         require(!taxedPair(pair), "DEX already exists");
         address tokenFor = MyobuLib.tokenFor(pair);
@@ -237,7 +237,7 @@ abstract contract MyobuBase is IMyobu, Ownable {
         IERC20(pair).approve(router, 0);
     }
 
-    function addLiquidity() external virtual onlyOwner{
+    function addLiquidity() external virtual onlyOwner {
         IUniswapV2Router _uniswapV2Router = IUniswapV2Router(
             0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
         );
@@ -253,21 +253,6 @@ abstract contract MyobuBase is IMyobu, Ownable {
         );
         swapEnabled = true;
         liquidityAdded = true;
-    }
-    
-    function setTaxAddress(address payable newTaxAddress) external onlyOwner {
-        _taxAddress = newTaxAddress;
-        emit TaxAddressChanged(newTaxAddress);
-    }
-    
-    function setTaxedTransfer(address[] memory taxedTransfer_) external onlyOwner {
-        for (uint i = 0; i < taxedTransfer_.length; i++) {
-            taxedTransfer[taxedTransfer_[i]] = true;
-        }
-    }
-    
-    function delTaxedTransfer(address notTaxed) external onlyOwner {
-        taxedTransfer[notTaxed] = false;
     }
 
     function manualswap() external onlyOwner {
@@ -414,15 +399,10 @@ abstract contract MyobuBase is IMyobu, Ownable {
         );
         require(
             newFees.taxFee + newFees.buyFee < 50 &&
-            newFees.taxFee + newFees.sellFee < 50 &&
-            newFees.transferFee <= newFees.sellFee,
+                newFees.taxFee + newFees.sellFee < 50,
             "Total fees for a buy / sell must be under 50"
         );
         fees = newFees;
-        swapEnabled = true;
-        if (newFees.buyFee + newFees.sellFee + newFees.transferFee == 0){
-            swapEnabled = false;
-        }
         emit FeesChanged(newFees);
     }
 
