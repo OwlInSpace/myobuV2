@@ -7,7 +7,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "typechain": "hardhat typechain",
-    "coverage": "hardhat coverage --network hardhat",
+    "coverage": "hardhat coverage",
     "test": "hardhat test",
     "test:testnet": "hardhat test --network testnet",
     "deploy": "hardhat deploy",

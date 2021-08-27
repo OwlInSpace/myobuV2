@@ -366,10 +366,12 @@ describe("Others", () => {
     })
   })
 
-  it("Manually swap and send all. Manual swap swaps all ETH and Manual send sends all ETH", async () => {
+  it("Manually swap and send all. Manual swap swaps all ETH and Manual send sends all ETH, Set tax address changes tax address", async () => {
+    await contract.setTaxAddress(signer.address)
+
     await contract.manualswap()
     const toBeSent = await provider.getBalance(contract.address)
-    const oldBalance = await provider.getBalance(taxReceiverAddress)
+    const oldBalance = await provider.getBalance(signer.address)
 
     // Swapped all tokens and has some ETH balance
     expect(await contract.balanceOf(contract.address)).to.be.equal(0)
@@ -378,15 +380,31 @@ describe("Others", () => {
 
     // Has no more eth left and all sent to tax
     expect(await provider.getBalance(contract.address)).to.be.equal(0)
-    expect(await provider.getBalance(taxReceiverAddress)).to.be.equal(
+    expect(await provider.getBalance(signer.address)).to.be.equal(
       oldBalance.add(toBeSent)
     )
+  })
+
+  it("Add DEX reverts on already added DEX", async () => {
+    await shouldRevert(async () =>
+      contract.addDEX(pair.address, router.address)
+    )
+  })
+
+  it("Remove DEX reverts on not added DEX", async () => {
+    await shouldRevert(async () => contract.removeDEX(taxReceiverAddress))
   })
 })
 
 describe("Change fees / different fees", () => {
   it("Making fees none, does not take a fee and does not revert", async () => {
-    await contract.setFees({ impact: 1, taxFee: 0, buyFee: 0, sellFee: 0 })
+    await contract.setFees({
+      impact: 1,
+      taxFee: 0,
+      buyFee: 0,
+      sellFee: 0,
+      transferFee: 0,
+    })
     const beforeFromBalance = await contract.balanceOf(signer.address)
     const beforeToBalance = await contract.balanceOf(pair.address)
     const testBuyAmount = amountLiqToken.div(1000)
@@ -409,7 +427,13 @@ describe("Change fees / different fees", () => {
   })
 
   it("Reflections + TeamFee works and takes correct amounts", async () => {
-    const feesToSetTo = { impact: 1, taxFee: 1, buyFee: 1, sellFee: 1 }
+    const feesToSetTo = {
+      impact: 1,
+      taxFee: 1,
+      buyFee: 1,
+      sellFee: 1,
+      transferFee: 1,
+    }
     await contract.setFees(feesToSetTo)
     const beforeFromBalance = await contract.balanceOf(signer.address)
     const beforeToBalance = await contract.balanceOf(pair.address)
@@ -454,7 +478,13 @@ describe("Change fees / different fees", () => {
     ).to.be.bignumber.greaterThan(testBuyAmount.div(100))
 
     // Set back to normal
-    await contract.setFees({ impact: 1, taxFee: 0, buyFee: 10, sellFee: 10 })
+    await contract.setFees({
+      impact: 1,
+      taxFee: 0,
+      buyFee: 10,
+      sellFee: 10,
+      transferFee: 10,
+    })
   })
 
   it("Reverts on impact higher than 100 or 0", async () => {
@@ -464,15 +494,34 @@ describe("Change fees / different fees", () => {
         taxFee: 0,
         buyFee: 10,
         sellFee: 10,
+        transferFee: 10,
       })
-      await contract.setFees({ impact: 0, taxFee: 0, buyFee: 10, sellFee: 10 })
+      await contract.setFees({
+        impact: 0,
+        taxFee: 0,
+        buyFee: 10,
+        sellFee: 10,
+        transferFee: 10,
+      })
     })
   })
 
   it("Reverts on fees higher than or equal to 50%", async () => {
     await shouldRevert(async () => {
-      await contract.setFees({ impact: 1, taxFee: 30, buyFee: 20, sellFee: 10 })
-      await contract.setFees({ impact: 1, taxFee: 30, buyFee: 10, sellFee: 20 })
+      await contract.setFees({
+        impact: 1,
+        taxFee: 30,
+        buyFee: 20,
+        sellFee: 10,
+        transferFee: 10,
+      })
+      await contract.setFees({
+        impact: 1,
+        taxFee: 30,
+        buyFee: 10,
+        sellFee: 20,
+        transferFee: 20,
+      })
     })
   })
 })
@@ -723,5 +772,49 @@ describe("Snapshot", async () => {
   it("Can be called by DAO address", async () => {
     await contract_.snapshot()
     expect(await contract_.getCurrentSnapshotId()).to.be.equal(2)
+  })
+})
+
+describe("Anti Liq Bot", () => {
+  it("Liq adds / removals does not work when anti liq bot is on and work from myobu swap", async () => {
+    await contract.setAntiLiqBot(true)
+    const paramsAdd = {
+      pair: pair.address,
+      to: owner.address,
+      amountTokenOrLP: amountLiqToken.div(1000),
+      amountTokenMin: 0,
+      amountETHMin: 0,
+      deadline: MAX,
+    }
+
+    await shouldRevert(async () => {
+      await contract.noFeeAddLiquidityETH(paramsAdd, { value: amountLiqETH })
+    })
+
+    await contract.setMyobuSwap(owner.address)
+
+    await contract.noFeeAddLiquidityETH(paramsAdd, { value: amountLiqETH })
+  })
+})
+
+describe("Taxed transfers", () => {
+  it("Addresses added get taxed (transferFee) amount", async () => {
+    await contract.manualswap()
+
+    await contract.setFees({
+      impact: 1,
+      taxFee: 0,
+      buyFee: 0,
+      sellFee: 5,
+      transferFee: 5,
+    })
+    await contract.setTaxedTransferFor([taxReceiverAddress])
+    const amountTx = amountLiqToken.div(100)
+    await contract_.transfer(taxReceiverAddress, amountTx)
+    expect(await contract.balanceOf(contract.address)).to.be.equal(
+      amountTx.div(20)
+    )
+
+    await contract.removeTaxedTransferFor([taxReceiverAddress])
   })
 })

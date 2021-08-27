@@ -4,11 +4,17 @@ import "./IERC20.sol";
 
 interface IMyobu is IERC20 {
     event DAOChanged(address newDAOContract);
+    event MyobuSwapChanged(address newMyobuSwap);
 
     function DAO() external view returns (address); // solhint-disable-line
 
-    event FeesTaken(uint256 teamFee, uint256 taxFee);
+    function myobuSwap() external view returns (address);
 
+    event TaxAddressChanged(address newTaxAddress);
+    event TaxedTransferAddedFor(address[] addresses);
+    event TaxedTransferRemovedFor(address[] addresses);
+
+    event FeesTaken(uint256 teamFee, uint256 taxFee);
     event FeesChanged(Fees newFees);
 
     struct Fees {
@@ -16,6 +22,7 @@ interface IMyobu is IERC20 {
         uint256 taxFee;
         uint256 buyFee;
         uint256 sellFee;
+        uint256 transferFee;
     }
 
     function currentFees() external view returns (Fees memory);

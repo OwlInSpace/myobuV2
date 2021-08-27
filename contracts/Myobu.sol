@@ -5,13 +5,21 @@ import "./ERC20Snapshot.sol";
 
 contract Myobu is ERC20Snapshot {
     address public override DAO; // solhint-disable-line
+    address public override myobuSwap;
+
+    bool private antiLiqBot;
 
     constructor(address payable addr1) MyobuBase(addr1) {
-        setFees(Fees(1, 0, 10, 10));
+        setFees(Fees(1, 0, 10, 10, 10));
     }
 
     modifier onlySupportedPair(address pair) {
         require(taxedPair(pair), "Pair is not supported");
+        _;
+    }
+
+    modifier onlyMyobuswapOnAntiLiq() {
+        require(!antiLiqBot || _msgSender() == myobuSwap, "Use MyobuSwap");
         _;
     }
 
@@ -25,9 +33,18 @@ contract Myobu is ERC20Snapshot {
         emit DAOChanged(newDAO);
     }
 
+    function setMyobuSwap(address newMyobuSwap) external onlyOwner {
+        myobuSwap = newMyobuSwap;
+        emit MyobuSwapChanged(newMyobuSwap);
+    }
+
     function snapshot() external returns (uint256) {
         require(_msgSender() == owner() || _msgSender() == DAO);
         return _snapshot();
+    }
+
+    function setAntiLiqBot(bool setTo) public virtual onlyOwner {
+        antiLiqBot = setTo;
     }
 
     function noFeeAddLiquidityETH(LiquidityETHParams calldata params)
@@ -36,6 +53,7 @@ contract Myobu is ERC20Snapshot {
         override
         onlySupportedPair(params.pair)
         checkDeadline(params.deadline)
+        onlyMyobuswapOnAntiLiq
         lockTheSwap
         returns (
             uint256 amountToken,
@@ -100,6 +118,7 @@ contract Myobu is ERC20Snapshot {
         override
         onlySupportedPair(params.pair)
         checkDeadline(params.deadline)
+        onlyMyobuswapOnAntiLiq
         lockTheSwap
         returns (
             uint256 amountMyobu,
