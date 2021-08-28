@@ -200,7 +200,7 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
         );
         fees = newFees;
 
-        if (newFees.buyFee + newFees.sellFee + newFees.transferFee == 0) {
+        if (newFees.buyFee + newFees.sellFee == 0) {
             swapEnabled = false;
         } else {
             swapEnabled = true;
