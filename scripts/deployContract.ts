@@ -2,11 +2,11 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { Contract } from "ethers"
 import chalk from "chalk"
 
-const deployContract = async function (
+const deployContract = async (
   hre: HardhatRuntimeEnvironment,
   name: string,
   ...args: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
-): Promise<Contract> {
+): Promise<Contract> => {
   console.log(chalk.white.bold`\n ${name} deployment`)
   const _contract = await hre.ethers.getContractFactory(name)
   const contract = await _contract.deploy(...args)
