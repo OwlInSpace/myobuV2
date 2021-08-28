@@ -10,7 +10,7 @@ contract Myobu is ERC20Snapshot {
     bool private antiLiqBot;
 
     constructor(address payable addr1) MyobuBase(addr1) {
-        setFees(Fees(1, 0, 10, 10, 10));
+        setFees(Fees(1, 10, 10, 10));
     }
 
     modifier onlySupportedPair(address pair) {

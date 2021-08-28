@@ -76,7 +76,7 @@ describe("Correct name, symbol, decimals, fees and supply", () => {
   it("Correct fees", async () => {
     const fees = await contract.currentFees()
     expect(fees[0]).to.be.equal(1)
-    expect(fees[1]).to.be.equal(0)
+    expect(fees[1]).to.be.equal(10)
     expect(fees[2]).to.be.equal(10)
     expect(fees[3]).to.be.equal(10)
   })
@@ -360,12 +360,6 @@ describe("Others", () => {
     })
   })
 
-  it("Cannot transfer 0 tokens", async () => {
-    await shouldRevert(async () => {
-      await contract.transfer(taxReceiverAddress, "0")
-    })
-  })
-
   it("Manually swap and send all. Manual swap swaps all ETH and Manual send sends all ETH, Set tax address changes tax address", async () => {
     await contract.setTaxAddress(signer.address)
 
@@ -400,7 +394,6 @@ describe("Change fees / different fees", () => {
   it("Making fees none, does not take a fee and does not revert", async () => {
     await contract.setFees({
       impact: 1,
-      taxFee: 0,
       buyFee: 0,
       sellFee: 0,
       transferFee: 0,
@@ -424,63 +417,9 @@ describe("Change fees / different fees", () => {
     expect(await contract.balanceOf(pair.address)).to.be.equal(
       beforeToBalance.sub(testBuyAmount)
     )
-  })
 
-  it("Reflections + TeamFee works and takes correct amounts", async () => {
-    const feesToSetTo = {
-      impact: 1,
-      taxFee: 1,
-      buyFee: 1,
-      sellFee: 1,
-      transferFee: 1,
-    }
-    await contract.setFees(feesToSetTo)
-    const beforeFromBalance = await contract.balanceOf(signer.address)
-    const beforeToBalance = await contract.balanceOf(pair.address)
-    const taxBalanceBeforeReflection = await contract.balanceOf(
-      taxReceiverAddress
-    )
-    const testBuyAmount = amountLiqToken.div(1000)
-
-    await router.swapETHForExactTokens(
-      testBuyAmount,
-      [WETH, contract.address],
-      signer.address,
-      MAX,
-      { value: amountLiqETH }
-    )
-
-    // Using greater than because of reflections
-
-    // Expect that tokens taken and received counts both fees
-    expect(
-      await contract.balanceOf(signer.address)
-    ).to.be.bignumber.greaterThan(
-      beforeFromBalance.add(testBuyAmount.mul(98).div(100))
-    )
-
-    expect(await contract.balanceOf(pair.address)).to.be.bignumber.greaterThan(
-      beforeToBalance.sub(testBuyAmount)
-    )
-
-    // Did receive reflections
-    const taxBalanceAfterReflection = await contract.balanceOf(
-      taxReceiverAddress
-    )
-
-    expect(taxBalanceAfterReflection).to.be.bignumber.greaterThan(
-      taxBalanceBeforeReflection
-    )
-
-    // Did get correct amount of team tokens
-    expect(
-      await contract.balanceOf(contract.address)
-    ).to.be.bignumber.greaterThan(testBuyAmount.div(100))
-
-    // Set back to normal
     await contract.setFees({
       impact: 1,
-      taxFee: 0,
       buyFee: 10,
       sellFee: 10,
       transferFee: 10,
@@ -491,14 +430,12 @@ describe("Change fees / different fees", () => {
     await shouldRevert(async () => {
       await contract.setFees({
         impact: 101,
-        taxFee: 0,
         buyFee: 10,
         sellFee: 10,
         transferFee: 10,
       })
       await contract.setFees({
         impact: 0,
-        taxFee: 0,
         buyFee: 10,
         sellFee: 10,
         transferFee: 10,
@@ -510,16 +447,14 @@ describe("Change fees / different fees", () => {
     await shouldRevert(async () => {
       await contract.setFees({
         impact: 1,
-        taxFee: 30,
-        buyFee: 20,
+        buyFee: 50,
         sellFee: 10,
         transferFee: 10,
       })
       await contract.setFees({
         impact: 1,
-        taxFee: 30,
         buyFee: 10,
-        sellFee: 20,
+        sellFee: 50,
         transferFee: 20,
       })
     })
@@ -803,7 +738,6 @@ describe("Taxed transfers", () => {
 
     await contract.setFees({
       impact: 1,
-      taxFee: 0,
       buyFee: 0,
       sellFee: 5,
       transferFee: 5,

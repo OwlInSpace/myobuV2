@@ -14,12 +14,11 @@ interface IMyobu is IERC20 {
     event TaxedTransferAddedFor(address[] addresses);
     event TaxedTransferRemovedFor(address[] addresses);
 
-    event FeesTaken(uint256 teamFee, uint256 taxFee);
+    event FeesTaken(uint256 teamFee);
     event FeesChanged(Fees newFees);
 
     struct Fees {
         uint256 impact;
-        uint256 taxFee;
         uint256 buyFee;
         uint256 sellFee;
         uint256 transferFee;
