@@ -191,13 +191,22 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
         require(liquidityAdded, "Add liquidity before doing this");
 
         address weth = uniswapV2Router.WETH();
-        address newPair = IUniswapV2Factory(newRouter.factory()).getPair(address(this), weth);
-        require(newPair != address(0), "WETH Pair does not exist for that router");
+        address newPair = IUniswapV2Factory(newRouter.factory()).getPair(
+            address(this),
+            weth
+        );
+        require(
+            newPair != address(0),
+            "WETH Pair does not exist for that router"
+        );
         require(taxedPair(newPair), "The pair must be a taxed pair");
 
-        (uint256 reservesOld,,) = IUniswapV2Pair(uniswapV2Pair).getReserves();
-        (uint256 reservesNew,,) = IUniswapV2Pair(newPair).getReserves();
-        require(reservesNew > reservesOld, "New pair must have more WETH Reserves");
+        (uint256 reservesOld, , ) = IUniswapV2Pair(uniswapV2Pair).getReserves();
+        (uint256 reservesNew, , ) = IUniswapV2Pair(newPair).getReserves();
+        require(
+            reservesNew > reservesOld,
+            "New pair must have more WETH Reserves"
+        );
 
         uniswapV2Router = newRouter;
         uniswapV2Pair = newPair;

@@ -689,38 +689,81 @@ describe("Use sushiswap", () => {
       )
     })
   })
-  
+
   describe("Set swap pair", () => {
-  it("Reverts when there is no pair for the router", async () => {
-    await shouldRevert(async () => await contract.setSwapRouter(sushiRouter.address))
-  })
-
-  let pairAddress: string
-  it("Create WETH Pair", async () => {
-    await sushiRouter.connect(owner).addLiquidityETH(contract.address, amountLiqToken.div(2), 0, 0, owner.address, MAX, {value: amountLiqETH.mul(3)})
-    const factory = <IUniswapV2Factory>(
-      await ethers.getContractAt(
-        "IUniswapV2Factory",
-        "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
+    it("Reverts when there is no pair for the router", async () => {
+      await shouldRevert(
+        async () => await contract.setSwapRouter(sushiRouter.address)
       )
-    )
-    pairAddress = await factory.getPair(WETH, contract.address)
-  })
+    })
 
-  it("Revert on add of an untaxed pair", async () => {
-    await shouldRevert(async () => await contract.setSwapRouter(sushiRouter.address))
+    let pairAddress: string
+    it("Create WETH Pair", async () => {
+      await sushiRouter
+        .connect(owner)
+        .addLiquidityETH(
+          contract.address,
+          amountLiqToken.div(2),
+          0,
+          0,
+          owner.address,
+          MAX,
+          { value: amountLiqETH }
+        )
+      const factory = <IUniswapV2Factory>(
+        await ethers.getContractAt(
+          "IUniswapV2Factory",
+          "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
+        )
+      )
+      pairAddress = await factory.getPair(WETH, contract.address)
+    })
+
+    it("Revert on add of an untaxed pair", async () => {
+      await shouldRevert(
+        async () => await contract.setSwapRouter(sushiRouter.address)
+      )
+    })
+
+    it("Sell tokens and Add DEX. Reverts on less reserves", async () => {
+      // Get lower reserves
+      await sushiRouter
+        .connect(owner)
+        .swapExactTokensForETHSupportingFeeOnTransferTokens(
+          100000000,
+          0,
+          [contract.address, WETH],
+          owner.address,
+          MAX
+        )
+      await contract.addDEX(pairAddress, sushiRouter.address)
+      await shouldRevert(
+        async () => await contract.setSwapRouter(sushiRouter.address)
+      )
+
+      // Increase reserves
+      await sushiRouter
+        .connect(owner)
+        .swapETHForExactTokens(
+          amountLiqToken.div(10),
+          [WETH, contract.address],
+          owner.address,
+          MAX,
+          {value: amountLiqETH}
+        )
+    })
+
+    it("Create WETH Pair and set swapRouter to it. Contract swaps tokens through the new pair", async () => {
+      await contract.setSwapRouter(sushiRouter.address)
+      const amountToSwap = await contract.balanceOf(contract.address)
+      const oldReserves = await contract.balanceOf(pairAddress)
+      await contract.manualswap()
+      // Pair did get tokens, (Swapped)
+      expect(await contract.balanceOf(pairAddress)).to.be.equal(
+        oldReserves.add(amountToSwap)
+      )
+    })
   })
-  
-  it("Create WETH Pair and set swapRouter to it. Contract swaps tokens through the new pair", async () => {
-    await contract.addDEX(pairAddress, sushiRouter.address)
-    await contract.setSwapRouter(sushiRouter.address)
-    let amountToSwap = await contract.balanceOf(contract.address)
-    let oldReserves = await contract.balanceOf(pairAddress)
-    await contract.manualswap()
-    // Pair did get tokens, (Swapped)
-    expect(await contract.balanceOf(pairAddress)).to.be.equal(oldReserves.add(amountToSwap))
-  })
-})
 })
 
 describe("Snapshot", async () => {
