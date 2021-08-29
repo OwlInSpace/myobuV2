@@ -187,6 +187,22 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
         sendETHToFee(address(this).balance);
     }
 
+    function setSwapRouter(IUniswapV2Router newRouter) external onlyOwner {
+        require(liquidityAdded, "Add liquidity before doing this");
+
+        address weth = uniswapV2Router.WETH();
+        address newPair = IUniswapV2Factory(newRouter.factory()).getPair(address(this), weth);
+        require(newPair != address(0), "WETH Pair does not exist for that router");
+        require(taxedPair(newPair), "The pair must be a taxed pair");
+
+        (uint256 reservesOld,,) = IUniswapV2Pair(uniswapV2Pair).getReserves();
+        (uint256 reservesNew,,) = IUniswapV2Pair(newPair).getReserves();
+        require(reservesNew > reservesOld, "New pair must have more WETH Reserves");
+
+        uniswapV2Router = newRouter;
+        uniswapV2Pair = newPair;
+    }
+
     function setFees(Fees memory newFees) public onlyOwner {
         require(
             newFees.impact != 0 && newFees.impact <= 100,

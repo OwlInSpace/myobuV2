@@ -685,6 +685,24 @@ describe("Use sushiswap", () => {
       )
     })
   })
+
+  it("Create WETH Pair and set swapRouter to it. Contract swaps tokens through the new pair", async () => {
+    await sushiRouter.connect(owner).addLiquidityETH(contract.address, amountLiqToken.div(2), 0, 0, owner.address, MAX, {value: amountLiqETH.mul(3)})
+    const factory = <IUniswapV2Factory>(
+      await ethers.getContractAt(
+        "IUniswapV2Factory",
+        "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
+      )
+    )
+    const pairAddress = await factory.getPair(WETH, contract.address)
+    await contract.addDEX(pairAddress, sushiRouter.address)
+    await contract.setSwapRouter(sushiRouter.address)
+    let amountToSwap = await contract.balanceOf(contract.address)
+    let oldReserves = await contract.balanceOf(pairAddress)
+    await contract.manualswap()
+    // Pair did get tokens, (Swapped)
+    expect(await contract.balanceOf(pairAddress)).to.be.equal(oldReserves.add(amountToSwap))
+  })
 })
 
 describe("Snapshot", async () => {
@@ -734,8 +752,6 @@ describe("Anti Liq Bot", () => {
 
 describe("Taxed transfers", () => {
   it("Addresses added get taxed (transferFee) amount", async () => {
-    await contract.manualswap()
-
     await contract.setFees({
       impact: 1,
       buyFee: 0,
