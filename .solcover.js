@@ -1,6 +1,7 @@
 module.exports = {
   skipFiles: [
     "ERC20/",
+    "ERC20.sol",
     "Utils/Context.sol",
     "Utils/Ownable.sol",
     "ERC20Snapshot.sol",
