@@ -98,6 +98,10 @@ describe("Add liquidity", () => {
     })
   })
 
+  it("setSwapRouter cannot be called before adding liquidity", async () => {
+    await shouldRevert(async () => await contract.setSwapRouter(router.address))
+  })
+
   it("Adds liquidity and creates pair", async () => {
     await contract.addLiquidity()
     const factory = <IUniswapV2Factory>(
@@ -685,8 +689,14 @@ describe("Use sushiswap", () => {
       )
     })
   })
+  
+  describe("Set swap pair", () => {
+  it("Reverts when there is no pair for the router", async () => {
+    await shouldRevert(async () => await contract.setSwapRouter(sushiRouter.address))
+  })
 
-  it("Create WETH Pair and set swapRouter to it. Contract swaps tokens through the new pair", async () => {
+  let pairAddress: string
+  it("Create WETH Pair", async () => {
     await sushiRouter.connect(owner).addLiquidityETH(contract.address, amountLiqToken.div(2), 0, 0, owner.address, MAX, {value: amountLiqETH.mul(3)})
     const factory = <IUniswapV2Factory>(
       await ethers.getContractAt(
@@ -694,7 +704,14 @@ describe("Use sushiswap", () => {
         "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
       )
     )
-    const pairAddress = await factory.getPair(WETH, contract.address)
+    pairAddress = await factory.getPair(WETH, contract.address)
+  })
+
+  it("Revert on add of an untaxed pair", async () => {
+    await shouldRevert(async () => await contract.setSwapRouter(sushiRouter.address))
+  })
+  
+  it("Create WETH Pair and set swapRouter to it. Contract swaps tokens through the new pair", async () => {
     await contract.addDEX(pairAddress, sushiRouter.address)
     await contract.setSwapRouter(sushiRouter.address)
     let amountToSwap = await contract.balanceOf(contract.address)
@@ -703,6 +720,7 @@ describe("Use sushiswap", () => {
     // Pair did get tokens, (Swapped)
     expect(await contract.balanceOf(pairAddress)).to.be.equal(oldReserves.add(amountToSwap))
   })
+})
 })
 
 describe("Snapshot", async () => {
