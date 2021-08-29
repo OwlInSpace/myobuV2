@@ -1,6 +1,6 @@
 # Myobu V2 Token
 
-The Myobu V2 Token, has reflection fees and a team fee. Team fee is based on if its a buy or sell. No fee when adding liquidity or removing liquidity
+The Myobu V2 Token, has team fee based on if its a buy or sell or if its a transfer to a taxed address. No fee when adding liquidity or removing liquidity
 
 Has snapshot functionality to be called by another contract (DAO).
 

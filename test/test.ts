@@ -129,16 +129,27 @@ describe("Add liquidity", () => {
 })
 
 describe("Using uniswap", () => {
-  it("Cannot buy before trading is open", async () => {
-    await shouldRevert(async () => {
-      await router.swapETHForExactTokens(
-        amountLiqToken.div(50),
-        [WETH, contract.address],
-        signer.address,
-        MAX,
-        { value: amountLiqETH.div(25) }
-      )
-    })
+  it("Cannot buy or sell before trading is open", async () => {
+    await shouldRevert(
+      async () =>
+        await router.swapETHForExactTokens(
+          amountLiqToken.div(50),
+          [WETH, contract.address],
+          signer.address,
+          MAX,
+          { value: amountLiqETH.div(25) }
+        )
+    )
+    await shouldRevert(
+      async () =>
+        await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+          amountLiqToken.div(50),
+          0,
+          [contract.address, WETH],
+          signer.address,
+          MAX
+        )
+    )
   })
 
   it("Open trading", async () => {
@@ -749,7 +760,7 @@ describe("Use sushiswap", () => {
           [WETH, contract.address],
           owner.address,
           MAX,
-          {value: amountLiqETH}
+          { value: amountLiqETH }
         )
     })
 
