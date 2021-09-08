@@ -219,10 +219,10 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
             "Impact must be greater than 0 and under or equal to 100"
         );
         require(
-            newFees.buyFee < 50 &&
-                newFees.sellFee < 50 &&
+            newFees.buyFee < 15 &&
+                newFees.sellFee < 15 &&
                 newFees.transferFee <= newFees.sellFee,
-            "Total fees for a buy / sell must be under 50"
+            "Total fees for a buy / sell must be under 15"
         );
         fees = newFees;
 
