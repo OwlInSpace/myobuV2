@@ -43,7 +43,7 @@ contract Myobu is ERC20Snapshot {
         return _snapshot();
     }
 
-    function setAntiLiqBot(bool setTo) public virtual onlyOwner {
+    function setAntiLiqBot(bool setTo) external virtual onlyOwner {
         antiLiqBot = setTo;
     }
 

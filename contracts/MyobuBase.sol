@@ -81,6 +81,7 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
         address to,
         uint256 amount
     ) internal virtual override {
+        // If no fee, it is 0 which will take no fee
         uint256 _teamFee;
         if (from != owner() && to != owner()) {
             if (swapEnabled && !inSwap) {
@@ -111,7 +112,7 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
         _taxAddress.transfer(amount);
     }
 
-    function openTrading() public virtual onlyOwner {
+    function openTrading() external virtual onlyOwner {
         require(liquidityAdded);
         tradingOpen = true;
     }
@@ -125,7 +126,7 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
         IERC20(pair).approve(router, MAX);
     }
 
-    function removeDEX(address pair) public virtual onlyOwner {
+    function removeDEX(address pair) external virtual onlyOwner {
         require(taxedPair(pair), "DEX does not exist");
         address tokenFor = MyobuLib.tokenFor(pair);
         address router = _routerFor[pair];
