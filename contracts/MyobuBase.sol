@@ -222,7 +222,7 @@ abstract contract MyobuBase is IMyobu, Ownable, ERC20 {
             newFees.buyFee < 15 &&
                 newFees.sellFee < 15 &&
                 newFees.transferFee <= newFees.sellFee,
-            "Total fees for a buy / sell must be under 15"
+            "Fees for a buy / sell must be under 15"
         );
         fees = newFees;
 
